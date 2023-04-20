@@ -2,4 +2,5 @@ FROM node:alpine as builder
 COPY . /app
 WORKDIR /app
 RUN npm ci
+RUN npm run dev
 EXPOSE 8080
