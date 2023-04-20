@@ -1,0 +1,50 @@
+# Spécifie les étapes de la pipeline
+stages:
+  - build
+  - test
+  - deploy
+
+# Définit les variables utilisées dans le fichier
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_IMAGE_NAME: my-image
+  DOCKER_REGISTRY_URL: registry.example.com
+  DOCKER_REGISTRY_USERNAME: my-username
+  IONIC_CLI_IMAGE: node:12.18-alpine
+
+# Définit les services Docker utilisés pour les étapes de la pipeline
+services:
+  - docker:dind
+
+# Étape de construction
+build:
+  stage: build
+  image: $IONIC_CLI_IMAGE
+  script:
+    - npm install
+    - ionic build --prod -- --base-href /$CI_PROJECT_NAME/
+    - docker build -t $DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA .
+
+# Étape de test
+test:
+  stage: test
+  image: $IONIC_CLI_IMAGE
+  script:
+    - npm install
+    - ionic build --prod -- --base-href /$CI_PROJECT_NAME/
+    - ionic serve &
+    - sleep 10
+    - npm run test
+
+# Étape de déploiement
+deploy:
+  stage: deploy
+  image: docker:stable
+  services:
+    - docker:dind
+  script:
+    - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin $DOCKER_REGISTRY_URL
+    - docker pull $DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA || true
+    - docker tag $DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA $DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:latest
+    - docker push $DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker push $DOCKER_REGISTRY_URL/$DOCKER_IMAGE_NAME:latest

@@ -1,6 +1,6 @@
-FROM node:alpine as builder 
-COPY . /app
+FROM node:alpine as builder
 WORKDIR /app
+COPY . .
 RUN npm ci
-RUN npm run dev
 EXPOSE 8080
+CMD ["npm" "run" "dev"]
