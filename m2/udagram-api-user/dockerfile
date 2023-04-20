@@ -1,6 +1,5 @@
 FROM node:alpine as builder 
-WORKDIR '/app'
-COPY package.json .
-RUN npm run ci
-COPY . .
-RUN npm run build
+COPY . /app
+WORKDIR /app
+RUN npm ci
+EXPOSE 8080
